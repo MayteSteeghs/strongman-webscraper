@@ -85,26 +85,55 @@ class competitionScraper:
 
     def parse_total_dataset(self, competitor_data, competition_data):
         # parse event_types
-        comp = competition(competition_data.title, competition_data.competition,\
-                           competition_data.location, competition_data.additional_header_information, \
-                           competition_data.column_headers)
+        comp = competition(competition_data['title'], competition_data['competition'],\
+                           competition_data['location'], competition_data['additional_header_information'], \
+                           competition_data['column_headers'])
 
+        competition_entries = []
         event_types = comp.event_types
 
         # loop through competitors and extract info
         for line in competitor_data['data']:
-            strongman = None
-            self.scraped_competitors.append(strongman)
+            rank = line[0]
 
-    # Run the script
-    def run(self):
-        competitor_data = self.get_comp_info(1305)
-        competition_data = self.parse_competition(1305)
-        self.parse_total_dataset(competitor_data, competition_data)
+            # Extract name from first row
+            nameRow = lxml.html.fromstring(line[1])
+            name = nameRow.get('title')
+            link = nameRow.get('href')
+            abbreviation = nameRow.text_content()
 
-        self.save_data()
+            # Extract country from second row
+            countryRow = lxml.html.fromstring(line[2])
+            country = self.extractCountry(countryRow)
 
-    # save the data into a json file
-    def save_data(self):
-        with open('competition_file.json', 'w') as json_file:
-            json.dump(self.scraped_competitors, json_file, indent=4)
+            # Extract performance information
+            total_points = line[3]
+            events = self.processScores(line[4:], event_types)
+
+            competition_entry = competitor(rank, name, abbreviation, link, country, total_points, events)
+            competition_entries.append(competition_entry)
+        self.scraped_competitions.append([comp, competition_entries])
+
+    # Helper method to extract country from name
+    def extractCountry(self, countryRow):
+        url = 'https://strongmanarchives.com' + str(countryRow.get('href'))
+
+        html = requests.get(url)
+        doc = lxml.html.fromstring(html.content)
+
+        title = doc.xpath('/html/head/title')[0].text
+        return title.split('Strongman Archives -')[1].strip()
+       
+    # Helper method to process scores by combining event column headers and athletes performances
+    def processScores(self, scores, event_types):
+        if len(scores) != len(event_types) * 2:
+            print("More scores than there are events!")
+
+        scoresIterable = iter(scores)
+        events = []
+        for ev in event_types:
+            points = next(scoresIterable)
+            performance = next(scoresIterable)
+            #TODO: Implement information
+            events.append(event(ev, performance, points, ''))
+        return events
