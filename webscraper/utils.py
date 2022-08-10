@@ -1,4 +1,4 @@
-from enum import Enum
+from typing import Collection
 
 class competition:
     def __init__(self, title, competition, location, additional_info, column_headers):
@@ -9,14 +9,26 @@ class competition:
         self.final = self.is_final(title, competition)
         self.event_types = self.parse_column_headers(column_headers)
 
-    def is_final(title, competition):
-        return ('Final' or 'final' or 'FINAL' in title \
-                or 'Final' or 'final' or 'FINAL' in competition)
+    def is_final(self, title, competition):
+        return (self.containsWord('Final', title) \
+                or self.containsWord('Final', competition) )
     
-    def is_grouped(title, competition, additional_info):
-        return (('Group' or 'group' or 'GROUP' in title) \
-                or ('Group' or 'group' or 'GROUP' in competition) \
-                or ('Group' or 'group' or 'GROUP' in additional_info))
+    def is_grouped(self, title, competition, additional_info):
+        return (self.containsWord('Group', title)  \
+                or self.containsWord('Group', competition)  \
+                or self.containsWord('Group', additional_info) )
+
+    def containsWord(word, input):
+        word = word.lower()
+        if isinstance(input, str):
+            input = input.lower()
+            if word in input: return True
+            return False
+        if isinstance(input, Collection):
+            for element in input:
+                element = element.lower()
+                if word in element: return True
+            return False
     
     def parse_column_headers(column_headers):
         event_types = []
