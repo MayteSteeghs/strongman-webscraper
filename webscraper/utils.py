@@ -63,9 +63,10 @@ class competitor:
 
 class event:
     def __init__(self, event_type, performance, points, info):
-        self.event_type = event_type
+        self.event_name = event_type.name
         self.performance = performance
         self.points = points
+        self.event_units = event_type.unit
         self.info = info
 
     def __eq__(self, other):
@@ -84,24 +85,19 @@ class event_type:
         return self.name == other.name
     
     # Milan you get to fill this in <3
-    def get_units(name):
+    def get_units(self, name):
         match name:
             case 'Viking Press':
-                return Units.reps 
+                return 'reps' 
             case 'Herucles Hold':
-                return Units.seconds
+                return 'seconds'
             case 'Truck Pull':
-                return Units.seconds
+                return 'seconds'
             case 'Conan\'s wheel':
-                return Units.degrees
+                return 'degrees'
             case 'Super Yoke':
-                return Units.seconds
-    
-class Units(Enum):
-    seconds = 1
-    reps = 2
-    distance = 3
-    degrees = 4
-    max_weight = 5
-    implements = 6
-    height = 7
+                return 'seconds'
+            case 'Medley':
+                return 'implements'
+            case _:
+                return 'seconds'
