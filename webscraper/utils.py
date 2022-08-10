@@ -1,55 +1,70 @@
 from typing import Collection
 
 class competition:
-    def __init__(self, title, competition, location, additional_info, column_headers):
+    def __init__(self, title, competition, location_info, additional_info, column_headers):
         self.title = title
         self.competition = competition
-        self.location = location
-        self.grouped = self.is_grouped(title, competition, additional_info)
-        self.final = self.is_final(title, competition)
-        self.event_types = self.parse_column_headers(column_headers)
+        self.location = getLocation(location_info)
+        self.dates = getDates(location_info)
+        self.grouped = is_grouped(title, competition, additional_info)
+        self.final = is_final(title, competition)
+        self.column_headers = parse_column_headers(column_headers)
 
-    def is_final(self, title, competition):
-        return (self.containsWord('Final', title) \
-                or self.containsWord('Final', competition) )
-    
-    def is_grouped(self, title, competition, additional_info):
-        return (self.containsWord('Group', title)  \
-                or self.containsWord('Group', competition)  \
-                or self.containsWord('Group', additional_info) )
+def getLocation(location_info):
+    splitter = location_info.split(',')
+    splitter.remove(splitter[-1])
+    mystring = ""
+    for s in splitter:
+        mystring = mystring + s
+    return mystring
 
-    def containsWord(word, input):
-        word = word.lower()
-        if isinstance(input, str):
-            input = input.lower()
-            if word in input: return True
-            return False
-        if isinstance(input, Collection):
-            for element in input:
-                element = element.lower()
-                if word in element: return True
-            return False
-    
-    def parse_column_headers(column_headers):
-        event_types = []
+@staticmethod
+def getDates(location_info):
+    return location_info.split(',')[-1].strip()
 
-        for header in column_headers:
-            if ('#' in header):
-                pass
-            if ('Competitor' or 'competitor' or 'COMPETITOR' in header):
-                pass
-            if ('Country' or 'COUNTRY' or 'country' in header):
-                pass
-            if ('pts' or 'PTS' in header):
-                pass
-            event_types.append(event_type(header))
+def containsWord(word, input):
+    word = word.lower()
+    if isinstance(input, str):
+        input = input.lower()
+        if word in input: return True
+        return False
+    if isinstance(input, Collection):
+        for element in input:
+            element = element.lower()
+            if word in element: return True
+        return False
 
-        return event_types
+def is_final(title, competition):
+    return (containsWord('Final', title) \
+            or containsWord('Final', competition) )
+
+def is_grouped(title, competition, additional_info):
+    return (containsWord('Group', title)  \
+            or containsWord('Group', competition)  \
+            or containsWord('Group', additional_info) )
+
+def parse_column_headers(column_headers):
+    event_types = []
+
+    for header in column_headers:
+        if ('#' in header):
+            continue
+        if containsWord('Competitor', header):
+            continue
+        if containsWord('Country', header):
+            continue
+        if containsWord('Pts', header):
+            continue
+        event_types.append(header)
+
+    return event_types
 
 class competitor:
-    def __init__(self, ranking, name, country, total_points, events):
+    def __init__(self, ranking, name, abbreviation, link, country, total_points, events):
         self.ranking = ranking
         self.name = name
+        self.abbreviation = abbreviation
+        self.link = link
         self.country = country
         self.total_points = total_points
         self.events = events
@@ -59,14 +74,15 @@ class competitor:
             and self.name == other.name \
             and self.country == other.country \
             and self.total_points == other.total_points \
-            and self.events == other.events
+            and self.events == other.events \
+            and self.abbreviation == other.abbreviation \
+            and self.link == other.link
 
 class event:
     def __init__(self, event_type, performance, points, info):
-        self.event_name = event_type.name
+        self.event_name = event_type
         self.performance = performance
         self.points = points
-        self.event_units = event_type.unit
         self.info = info
 
     def __eq__(self, other):
@@ -74,30 +90,3 @@ class event:
             and self.performance == other.performance \
             and self.points == other.points \
             and self.info == other.info
-
-class event_type:
-
-    def __init__(self, name):
-        self.name = name
-        self.unit = self.get_units(name)
-
-    def __eq__(self, other):
-        return self.name == other.name
-    
-    # Milan you get to fill this in <3
-    def get_units(self, name):
-        match name:
-            case 'Viking Press':
-                return 'reps' 
-            case 'Herucles Hold':
-                return 'seconds'
-            case 'Truck Pull':
-                return 'seconds'
-            case 'Conan\'s wheel':
-                return 'degrees'
-            case 'Super Yoke':
-                return 'seconds'
-            case 'Medley':
-                return 'implements'
-            case _:
-                return 'seconds'

@@ -10,6 +10,7 @@ class competitionScraper:
     
     API_url = 'https://strongmanarchives.com/fetchContestResult.php'
     scraped_competitions = []
+    country_cache = {}
 
     # Run the script
     def run(self):
@@ -25,11 +26,7 @@ class competitionScraper:
             comp_info = pd.DataFrame(vars(i[0])).drop(columns='event_types')
             competitors = list(map(lambda a: vars(a), i[1]))
             for sm in competitors:
-                sm['events'] = list(map(lambda a: vars(a), sm['events']))
-
-            df = pd.DataFrame(competitors).drop(columns='events')
-            eventdf = pd.json_normalize(pd.DataFrame(competitors['events']))
-            print(eventdf.head()) 
+                sm['events'] = list(map(lambda a: vars(a), sm['events']))   
     
     # Gets data from contestID
     def get_comp_info(self, contestID):
@@ -95,7 +92,7 @@ class competitionScraper:
         info = {
             'title': title,
             'competition': header_information[0],
-            'location': header_information[1],
+            'location_info': header_information[1],
             'additional_header_information': header_additional,
             'column_headers': column_labelset[0]
         }
@@ -105,11 +102,11 @@ class competitionScraper:
     def parse_total_dataset(self, competitor_data, competition_data):
         # parse event_types
         comp = competition(competition_data['title'], competition_data['competition'],\
-                           competition_data['location'], competition_data['additional_header_information'], \
+                           competition_data['location_info'], competition_data['additional_header_information'], \
                            competition_data['column_headers'])
 
         competition_entries = []
-        event_types = comp.event_types
+        event_types = comp.column_headers
 
         # loop through competitors and extract info
         for line in competitor_data['data']:
@@ -123,7 +120,12 @@ class competitionScraper:
 
             # Extract country from second row
             countryRow = lxml.html.fromstring(line[2])
-            country = self.extractCountry(countryRow)
+            countryKey = countryRow.get('title').strip()
+            country = ""
+            if countryKey in self.country_cache:
+                country = self.country_cache.get(countryKey)
+            else:
+                country = self.extractCountry(countryRow)
 
             # Extract performance information
             total_points = line[3]
@@ -141,7 +143,9 @@ class competitionScraper:
         doc = lxml.html.fromstring(html.content)
 
         title = doc.xpath('/html/head/title')[0].text
-        return title.split('Strongman Archives -')[1].strip()
+        country = title.split('Strongman Archives -')[1].strip()
+        self.country_cache[countryRow.get('title').strip()] = country
+        return country
        
     # Helper method to process scores by combining event column headers and athletes performances
     def processScores(self, scores, event_types):
