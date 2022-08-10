@@ -1,16 +1,35 @@
 import requests
-import json
 import lxml.html
+import pandas as pd
 
 from utils import competitor
 from utils import competition
 from utils import event
-from utils import event_type
 
 class competitionScraper:
     
     API_url = 'https://strongmanarchives.com/fetchContestResult.php'
-    scraped_competitors = []
+    scraped_competitions = []
+
+    # Run the script
+    def run(self):
+        competitor_data = self.get_comp_info(825)
+        competition_data = self.parse_competition(825)
+        self.parse_total_dataset(competitor_data, competition_data)
+
+        self.save_data()
+
+    # save the data into a csv file
+    def save_data(self):
+        for i in self.scraped_competitions:
+            comp_info = pd.DataFrame(vars(i[0])).drop(columns='event_types')
+            competitors = list(map(lambda a: vars(a), i[1]))
+            for sm in competitors:
+                sm['events'] = list(map(lambda a: vars(a), sm['events']))
+
+            df = pd.DataFrame(competitors).drop(columns='events')
+            eventdf = pd.json_normalize(pd.DataFrame(competitors['events']))
+            print(eventdf.head()) 
     
     # Gets data from contestID
     def get_comp_info(self, contestID):
