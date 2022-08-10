@@ -28,20 +28,20 @@ class competitionScraper:
         url = 'https://strongmanarchives.com/viewContest.php?id=' + str(contestID)
 
         html = requests.get(url)
-        element = lxml.html.fromstring(html.content)
+        doc = lxml.html.fromstring(html.content)
 
-        title = element.xpath('/html/head/title')[0].text
-        
+        title = doc.xpath('/html/head/title')[0].text.split('Strongman Archives -')[1].strip()
+
         header_information = []
 
         # Usually the header information is formatted into a table
-        header = element.xpath('/html/body/center/div/table/thead/tr/th/center/*')
+        header = doc.xpath('/html/body/center/div/table/thead/tr/th/center/*')
         for item in header:
             header_information.append(item.text_content())
 
         # Sometimes it's formatted as a random piece of text for some ungodly reason
         if (len(header_information) == 0):
-            header = element.xpath('/html/body/center/div/*')
+            header = doc.xpath('/html/body/center/div/*')
 
             for item in header:
                 if (item.tag == 'br'):
@@ -52,7 +52,7 @@ class competitionScraper:
         header_additional = ",".join(header_information[2:])
 
         # Now time to extract the column names and pray so we can splice together our two information sources
-        table = element.cssselect('thead')
+        table = doc.cssselect('thead')
         column_labels = []
         for item in table:
             column_labels.append(item.text_content())
@@ -68,11 +68,9 @@ class competitionScraper:
         for row in column_labels:
             entry = row.split('\r\n')
            
-            for item in entry:
-                item.strip()
-                if item == "":
-                    entry.remove(item)
-
+            entry = list(filter(lambda a: a != '', entry))
+            entry = list(map(lambda a: a.strip(), entry))
+            
             column_labelset.append(entry)
         
         info = {
@@ -80,7 +78,7 @@ class competitionScraper:
             'competition': header_information[0],
             'location': header_information[1],
             'additional_header_information': header_additional,
-            'column_headers': column_labelset
+            'column_headers': column_labelset[0]
         }
 
         return info
