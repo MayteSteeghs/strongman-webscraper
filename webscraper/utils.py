@@ -1,7 +1,7 @@
 from typing import Collection
 
 class competition:
-    def __init__(self, title, competition, location_info, additional_info, column_headers, comp_id):
+    def __init__(self, title, competition, location_info, additional_info, column_headers, comp_id, contest_notes):
         self.comp_id = comp_id
         self.title = title
         self.competition = competition
@@ -9,7 +9,9 @@ class competition:
         self.dates = getDates(location_info)
         self.grouped = is_grouped(title, competition, additional_info)
         self.final = is_final(title, competition)
+        self.qualifier = is_qualifier(title, competition, additional_info)
         self.column_headers = parse_column_headers(column_headers)
+        self.contest_notes = contest_notes
 
 def getLocation(location_info):
     splitter = location_info.split(',')
