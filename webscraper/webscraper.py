@@ -2,6 +2,7 @@ import requests
 import lxml.html
 import pandas as pd
 import json
+import xml
 from utils import *
 
 class competitionScraper:
@@ -15,7 +16,8 @@ class competitionScraper:
         with open('data\input\country_lookup.json', 'r') as d:
             self.country_cache = json.load(d)
 
-        for id in range (1, 1350):
+        for id in range (1, 1035):
+            print(id)
             competitor_data = self.get_comp_info(id)
             competition_data = self.parse_competition(id)
             self.parse_total_dataset(competitor_data, competition_data)
@@ -37,7 +39,9 @@ class competitionScraper:
         df.to_csv("data\output\\" + name + ".csv")
 
         with open('data\input\country_lookup.json', 'w') as w:
+            w.seek(0)
             json.dump(self.country_cache, w)
+            w.truncate()
                 
     # Gets data from contestID
     def get_comp_info(self, contestID):
@@ -57,8 +61,26 @@ class competitionScraper:
         html = requests.get(url)
         doc = lxml.html.fromstring(html.content)
 
+        # section off unwanted content - limit to only first table
+        root = lxml.etree.HTML(html.content)
+        path = root[1][1][0]
+        correctChildren = list(path)[0:1]
+        for child in list(path)[1:]:
+            tag = child.tag
+            if tag == 'h3': break
+            correctChildren.append(child)
+        
+        for child in list(path):
+            if child not in correctChildren:
+                path.remove(child)
+        
+        doc_string = lxml.etree.tostring(root, encoding='UTF-8', method="html", xml_declaration=None, pretty_print=True, with_tail=True, standalone=None, doctype=None, exclusive=False, inclusive_ns_prefixes=None, with_comments=True, strip_text=False, )
+        doc = lxml.html.fromstring(doc_string)
+
+        # select title
         title = doc.xpath('/html/head/title')[0].text.split('Strongman Archives -')[1].strip()
 
+        # select header information
         header_information = []
 
         # Usually the header information is formatted into a table
@@ -121,6 +143,7 @@ class competitionScraper:
         for row in column_labels:
             column_labelset.append(prettifyEntry(row))
         
+        # store information as json object
         info = {
             'title': title,
             'competition': header_information[0],
