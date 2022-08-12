@@ -1,7 +1,8 @@
 from typing import Collection
 
 class competition:
-    def __init__(self, title, competition, location_info, additional_info, column_headers):
+    def __init__(self, title, competition, location_info, additional_info, column_headers, comp_id):
+        self.comp_id = comp_id
         self.title = title
         self.competition = competition
         self.location = getLocation(location_info)
@@ -90,3 +91,11 @@ class event:
             and self.performance == other.performance \
             and self.points == other.points \
             and self.info == other.info
+
+@staticmethod
+def prettifyEntry(element):
+    entry = element.split('\r\n')
+    entry = list(filter(lambda a: a != '', entry))
+    entry = list(map(lambda a: a.strip(), entry))
+            
+    return entry
