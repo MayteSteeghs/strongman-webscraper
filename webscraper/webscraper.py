@@ -1,10 +1,8 @@
 import requests
 import lxml.html
 import pandas as pd
-
-from utils import competitor
-from utils import competition
-from utils import event
+import json
+from utils import *
 
 class competitionScraper:
     
@@ -14,20 +12,33 @@ class competitionScraper:
 
     # Run the script
     def run(self):
-        competitor_data = self.get_comp_info(825)
-        competition_data = self.parse_competition(825)
-        self.parse_total_dataset(competitor_data, competition_data)
+        with open('data\input\country_lookup.json', 'r') as d:
+            self.country_cache = json.load(d)
 
-        self.save_data()
+        for id in range (1, 1350):
+            competitor_data = self.get_comp_info(id)
+            competition_data = self.parse_competition(id)
+            self.parse_total_dataset(competitor_data, competition_data)
+            self.save_data(id) # move once testing phase is done
+        
 
     # save the data into a csv file
-    def save_data(self):
-        for i in self.scraped_competitions:
-            comp_info = pd.DataFrame(vars(i[0])).drop(columns='event_types')
-            competitors = list(map(lambda a: vars(a), i[1]))
-            for sm in competitors:
-                sm['events'] = list(map(lambda a: vars(a), sm['events']))   
-    
+    def save_data(self, id):
+        i = self.scraped_competitions[id-1]
+        comp_info = vars(i[0])
+        del comp_info['column_headers']
+        competitors = list(map(lambda a: vars(a), i[1]))
+        dataframe = []
+        for sm in competitors:
+            sm['events'] = list(map(lambda a: vars(a), sm['events']))
+            dataframe.append(comp_info | sm)
+        df = pd.DataFrame(dataframe)
+        name = comp_info['title']
+        df.to_csv("data\output\\" + name + ".csv")
+
+        with open('data\input\country_lookup.json', 'w') as w:
+            json.dump(self.country_cache, w)
+                
     # Gets data from contestID
     def get_comp_info(self, contestID):
 
@@ -67,6 +78,14 @@ class competitionScraper:
         # Summarize extra header content
         header_additional = ",".join(header_information[2:])
 
+        # Find the event information
+        event_list = {}
+        if (len(doc.find_class('content')) != 0):
+            event_info = prettifyEntry(doc.find_class('content')[0].text_content())
+            for event in event_info:
+                e = list(map(lambda a: a.strip(), event.split(':')))
+                event_list[e[0]] = e[1]
+                 
         # Now time to extract the column names and pray so we can splice together our two information sources
         table = doc.cssselect('thead')
         column_labels = []
@@ -82,19 +101,16 @@ class competitionScraper:
         # prettify entries
         column_labelset = []
         for row in column_labels:
-            entry = row.split('\r\n')
-           
-            entry = list(filter(lambda a: a != '', entry))
-            entry = list(map(lambda a: a.strip(), entry))
-            
-            column_labelset.append(entry)
+            column_labelset.append(prettifyEntry(row))
         
         info = {
             'title': title,
             'competition': header_information[0],
             'location_info': header_information[1],
             'additional_header_information': header_additional,
-            'column_headers': column_labelset[0]
+            'column_headers': column_labelset[0],
+            'event_info': event_list,
+            'comp_id': contestID
         }
 
         return info
@@ -103,7 +119,7 @@ class competitionScraper:
         # parse event_types
         comp = competition(competition_data['title'], competition_data['competition'],\
                            competition_data['location_info'], competition_data['additional_header_information'], \
-                           competition_data['column_headers'])
+                           competition_data['column_headers'], competition_data['comp_id'])
 
         competition_entries = []
         event_types = comp.column_headers
@@ -129,7 +145,7 @@ class competitionScraper:
 
             # Extract performance information
             total_points = line[3]
-            events = self.processScores(line[4:], event_types)
+            events = self.processScores(line[4:], event_types, competition_data['event_info'])
 
             competition_entry = competitor(rank, name, abbreviation, link, country, total_points, events)
             competition_entries.append(competition_entry)
@@ -148,15 +164,16 @@ class competitionScraper:
         return country
        
     # Helper method to process scores by combining event column headers and athletes performances
-    def processScores(self, scores, event_types):
+    def processScores(self, scores, event_types, event_info):
         if len(scores) != len(event_types) * 2:
             print("More scores than there are events!")
 
         scoresIterable = iter(scores)
         events = []
         for ev in event_types:
-            points = next(scoresIterable)
             performance = next(scoresIterable)
+            points = next(scoresIterable)
             #TODO: Implement information
-            events.append(event(ev, performance, points, ''))
+            info = event_info.get(ev, 'None')
+            events.append(event(ev, performance, points, info))
         return events
