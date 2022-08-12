@@ -98,6 +98,16 @@ class event:
             and self.performance == other.performance \
             and self.points == other.points \
             and self.info == other.info
+            
+class EmptyPageError(Exception):
+ 
+    # Constructor or Initializer
+    def __init__(self, value):
+        self.value = value
+ 
+    # __str__ is to print() the value
+    def __str__(self):
+        return(repr(self.value))
 
 @staticmethod
 def prettifyEntry(element):
@@ -105,3 +115,4 @@ def prettifyEntry(element):
     entry = list(map(lambda a: a.strip(), entry))
     entry = list(filter(lambda a: a != '', entry))            
     return entry
+

@@ -16,13 +16,17 @@ class competitionScraper:
         with open('data\input\country_lookup.json', 'r') as d:
             self.country_cache = json.load(d)
 
-        for id in range (1, 1035):
+        # fix 169
+        for id in range (1, 1350):
             print(id)
+            try:
+                competition_data = self.parse_competition(id)
+            except EmptyPageError:
+                continue
+
             competitor_data = self.get_comp_info(id)
-            competition_data = self.parse_competition(id)
             self.parse_total_dataset(competitor_data, competition_data)
             self.save_data(id) # move once testing phase is done
-        
 
     # save the data into a csv file
     def save_data(self, id):
@@ -58,11 +62,13 @@ class competitionScraper:
     def parse_competition(self, contestID):
         url = 'https://strongmanarchives.com/viewContest.php?id=' + str(contestID)
 
-        html = requests.get(url)
-        doc = lxml.html.fromstring(html.content)
+        request = requests.get(url)
+        if request.status_code == 500:
+            raise EmptyPageError('No record found')
+        doc = lxml.html.fromstring(request.content)
 
         # section off unwanted content - limit to only first table
-        root = lxml.etree.HTML(html.content)
+        root = lxml.etree.HTML(request.content)
         path = root[1][1][0]
         correctChildren = list(path)[0:1]
         for child in list(path)[1:]:
