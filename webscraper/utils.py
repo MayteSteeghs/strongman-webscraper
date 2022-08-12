@@ -102,7 +102,6 @@ class event:
 @staticmethod
 def prettifyEntry(element):
     entry = element.split('\r\n')
-    entry = list(filter(lambda a: a != '', entry))
     entry = list(map(lambda a: a.strip(), entry))
-            
+    entry = list(filter(lambda a: a != '', entry))            
     return entry
