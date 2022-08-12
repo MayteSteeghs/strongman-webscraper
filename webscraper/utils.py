@@ -46,6 +46,11 @@ def is_grouped(title, competition, additional_info):
             or containsWord('Group', competition)  \
             or containsWord('Group', additional_info) )
 
+def is_qualifier(title, competition, additional_info):
+    return (containsWord('Qualif', title)  \
+            or containsWord('Qualif', competition)  \
+            or containsWord('Qualif', additional_info) )
+
 def parse_column_headers(column_headers):
     event_types = []
 
