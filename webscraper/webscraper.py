@@ -80,8 +80,26 @@ class competitionScraper:
 
         # Find the event information
         event_list = {}
+        contest_notes = "None"
         if (len(doc.find_class('content')) != 0):
-            event_info = prettifyEntry(doc.find_class('content')[0].text_content())
+            event_info = ""
+
+            event_content = doc.find_class('content')[0].text_content()
+
+            # Handle the contest notes case
+            if 'Contest Notes' in event_content:
+                contest_notes_raw = event_content.split(':')[0:2]    
+                contest_notes_raw = ''.join((str(n) for n in contest_notes_raw))
+                removeTrail = contest_notes_raw.split('.')
+                extra = removeTrail.pop() + ":"
+                contest_notes_with_escape_chars = ''.join((str(n) for n in removeTrail))
+                contest_notes = ''.join((str(n) for n in prettifyEntry(contest_notes_with_escape_chars)))
+                event_info = prettifyEntry(extra + ':'.join((str(n) for n in event_content.split(':')[2:])))
+                event_info = [] if event_info[0] == ':' and len(event_info) == 1 else event_info
+            else:
+                event_info = prettifyEntry(event_content)
+
+            # convert events to dictionary
             for event in event_info:
                 e = list(map(lambda a: a.strip(), event.split(':')))
                 event_list[e[0]] = e[1]
@@ -110,7 +128,8 @@ class competitionScraper:
             'additional_header_information': header_additional,
             'column_headers': column_labelset[0],
             'event_info': event_list,
-            'comp_id': contestID
+            'comp_id': contestID,
+            'contest_notes': contest_notes            
         }
 
         return info
@@ -119,7 +138,7 @@ class competitionScraper:
         # parse event_types
         comp = competition(competition_data['title'], competition_data['competition'],\
                            competition_data['location_info'], competition_data['additional_header_information'], \
-                           competition_data['column_headers'], competition_data['comp_id'])
+                           competition_data['column_headers'], competition_data['comp_id'], competition_data['contest_notes'])
 
         competition_entries = []
         event_types = comp.column_headers
