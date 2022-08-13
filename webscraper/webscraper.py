@@ -16,7 +16,6 @@ class competitionScraper:
             self.country_cache = json.load(d)
             
         for id in range (1, 1400):
-            print(id)
             try:
                 competition_data = parse_competition(id)
                 competitor_data = get_comp_info(self, id)
