@@ -11,6 +11,13 @@ def parse_competition(contestID):
         raise EmptyPageError('No record found')
     doc = lxml.html.fromstring(request.content)
 
+    page_content = list(map(lambda a: a.text_content(), doc.xpath('/html/body/center/*')))
+    for element in page_content:
+        if (containsWord('results', element) and containsWord('not', element) and containsWord('available', element)) \
+            or containsWord('Event Details', element) or containsWord('Competing Athletes', element) \
+            or containsWord('No known athletes or events at this time', element):
+            raise EmptyPageError('Results unavailable')
+
     # section off unwanted content - limit to only first table
     root = lxml.etree.HTML(request.content)
     path = root[1][1][0]
@@ -29,11 +36,6 @@ def parse_competition(contestID):
 
     # select title
     title = doc.xpath('/html/head/title')[0].text.split('Strongman Archives -')[1].strip()
-
-    page_content = list(map(lambda a: a.text_content(), doc.xpath('/html/body/center/div/*')))
-    for element in page_content:
-        if containsWord('results', element) and containsWord('not', element) and containsWord('available', element):
-            raise EmptyPageError('Results unavailable')
 
     # select header information
     header_information = []
