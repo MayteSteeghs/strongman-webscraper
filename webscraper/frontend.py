@@ -30,6 +30,11 @@ def parse_competition(contestID):
     # select title
     title = doc.xpath('/html/head/title')[0].text.split('Strongman Archives -')[1].strip()
 
+    page_content = list(map(lambda a: a.text_content(), doc.xpath('/html/body/center/div/*')))
+    for element in page_content:
+        if containsWord('results', element) and containsWord('not', element) and containsWord('available', element):
+            raise EmptyPageError('Results unavailable')
+
     # select header information
     header_information = []
 

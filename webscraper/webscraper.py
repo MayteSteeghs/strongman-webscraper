@@ -16,14 +16,13 @@ class competitionScraper:
         with open('data\input\country_lookup.json', 'r') as d:
             self.country_cache = json.load(d)
             
-        for id in range (1, 1350):
+        for id in range (1075, 1400):
             print(id)
             try:
                 competition_data = parse_competition(id)
+                competitor_data = get_comp_info(self, id)
             except EmptyPageError:
                 continue
-
-            competitor_data = get_comp_info(self, id)
             self.parse_total_dataset(competitor_data, competition_data)
             self.save_data() # move once testing phase is done
 
