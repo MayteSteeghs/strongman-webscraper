@@ -1,3 +1,4 @@
+from operator import contains
 from typing import Collection
 import lxml.html
 from backend import *
@@ -147,8 +148,12 @@ def data_interface(self, competitor_data, competition_data):
             country = extractCountry(self, countryRow)
 
         # Extract performance information
-        total_points = line[3]
-        events = processScores(line[4:], event_types, competition_data['event_info'])
+        if isinstance(line[3], str):
+            events = processEdgeCaseScores(line[3:], event_types, competition_data['event_info'])
+            total_points = -1
+        else:
+            total_points = line[3]
+            events = processScores(line[4:], event_types, competition_data['event_info'])
 
         competition_entry = competitor(rank, name, abbreviation, link, country, total_points, events)
         competition_entries.append(competition_entry)
@@ -168,3 +173,14 @@ def processScores(scores, event_types, event_info):
         info = event_info.get(ev, 'None')
         events.append(event(ev, performance, points, info))
     return events
+
+@staticmethod
+def processEdgeCaseScores(scores, event_types, event_info):
+    scoresIterable = iter(scores)
+    events = []
+    for ev in event_types:
+        performance = next(scoresIterable)
+        info = event_info.get(ev, 'None')
+        events.append(event(ev, performance, -1, info))
+    return events
+        
