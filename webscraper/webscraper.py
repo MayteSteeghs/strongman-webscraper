@@ -40,7 +40,7 @@ class competitionScraper:
 
         with open('data\input\country_lookup.json', 'w') as w:
             w.seek(0)
-            json.dump(self.country_cache, w)
+            json.dump(self.country_cache, w, indent=1)
             w.truncate()
 
     def parse_total_dataset(self, competitor_data, competition_data):
