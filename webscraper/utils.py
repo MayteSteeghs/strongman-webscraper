@@ -1,4 +1,6 @@
 from typing import Collection
+import lxml.html
+from backend import *
 
 class competition:
     def __init__(self, title, competition, location_info, additional_info, column_headers, comp_id, contest_notes):
@@ -55,7 +57,7 @@ def parse_column_headers(column_headers):
     event_types = []
 
     for header in column_headers:
-        if ('#' in header):
+        if (header.strip() == '#'):
             continue
         if containsWord('Competitor', header):
             continue
@@ -98,7 +100,7 @@ class event:
             and self.performance == other.performance \
             and self.points == other.points \
             and self.info == other.info
-            
+
 class EmptyPageError(Exception):
  
     # Constructor or Initializer
@@ -113,6 +115,56 @@ class EmptyPageError(Exception):
 def prettifyEntry(element):
     entry = element.split('\r\n')
     entry = list(map(lambda a: a.strip(), entry))
-    entry = list(filter(lambda a: a != '', entry))            
+    entry = list(filter(lambda a: a != '', entry))          
     return entry
 
+def data_interface(self, competitor_data, competition_data):
+# parse event_types
+    comp = competition(competition_data['title'], competition_data['competition'],\
+                    competition_data['location_info'], competition_data['additional_header_information'], \
+                    competition_data['column_headers'], competition_data['comp_id'], competition_data['contest_notes'])
+
+    competition_entries = []
+    event_types = comp.column_headers
+
+    # loop through competitors and extract info
+    for line in competitor_data['data']:
+        rank = line[0]
+
+        # Extract name from first row
+        nameRow = lxml.html.fromstring(line[1])
+        name = nameRow.get('title')
+        link = nameRow.get('href')
+        abbreviation = nameRow.text_content()
+
+        # Extract country from second row
+        countryRow = lxml.html.fromstring(line[2])
+        countryKey = countryRow.get('title').strip()
+        country = ""
+        if countryKey in self.country_cache:
+            country = self.country_cache.get(countryKey)
+        else:
+            country = extractCountry(self, countryRow)
+
+        # Extract performance information
+        total_points = line[3]
+        events = processScores(line[4:], event_types, competition_data['event_info'])
+
+        competition_entry = competitor(rank, name, abbreviation, link, country, total_points, events)
+        competition_entries.append(competition_entry)
+    return [comp, competition_entries]
+
+# Helper method to process scores by combining event column headers and athletes performances
+@staticmethod
+def processScores(scores, event_types, event_info):
+    if len(scores) != len(event_types) * 2:
+        print("More scores than there are events!")
+
+    scoresIterable = iter(scores)
+    events = []
+    for ev in event_types:
+        performance = next(scoresIterable)
+        points = next(scoresIterable)
+        info = event_info.get(ev, 'None')
+        events.append(event(ev, performance, points, info))
+    return events
